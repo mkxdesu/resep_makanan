@@ -288,6 +288,66 @@ git push origin feature/nama-fitur
 
 ## 🚀 Deployment
 
+### Docker Compose (port 80)
+
+The Compose setup publishes the web application on host port **80** by default (container port 80), so it is available at `http://<IP_PUBLIC_VM>` without a port suffix. Copy `.env.example` to `.env`, set strong values for `APP_KEY`, `DB_PASSWORD`, and `MYSQL_ROOT_PASSWORD`, and use `APP_URL=http://localhost` for local testing or `APP_URL=http://<IP_PUBLIC_VM>` on the VM.
+
+If port 80 is already in use on a development laptop, set `APP_PORT=8081` and `APP_URL=http://localhost:8081` in that laptop's ignored `.env`. Keep `APP_PORT=80` and `APP_URL=http://<IP_PUBLIC_VM>` in the VM's `.env`.
+
+```bash
+docker compose config --quiet
+docker compose up -d --build
+docker compose ps
+docker compose logs -f app
+```
+
+Open `http://localhost` locally. On Azure, allow inbound TCP **80** in the VM's network security group and open `http://<IP_PUBLIC_VM>`. The MySQL service is private and does not publish a host port.
+
+Before deploying on the VM, check whether another container already uses port 80:
+
+```bash
+sudo docker ps --format "table {{.Names}}\t{{.Ports}}"
+```
+
+If the Portify practicum stack owns port 80 and should be stopped, go to its project directory and stop only that Compose project:
+
+```bash
+cd <portify-project-directory>
+sudo docker compose down
+```
+
+Do not stop unrelated containers. In Azure Portal, set the VM's Public IP assignment to **Static** (Public IP address > Configuration) before recording the address for the report. Keep `.env`'s `APP_URL` aligned with that IP.
+
+To check the login page and migration state, visit `/login` and run:
+
+```bash
+docker compose exec -T app php artisan migrate:status
+docker compose exec -T app php artisan db:show --counts
+```
+
+When seeders are enabled, the demo accounts use the password `password123`. Change the demo account passwords in the application immediately after the first login. Once the initial seed has run, set `RUN_SEEDERS=false` in `.env` to prevent seeders from running on later starts; this does not change existing passwords.
+
+For a persistence check, create a recipe in the application first. Then recreate the containers and confirm that recipe is still present:
+
+```bash
+sudo docker compose down
+sudo docker compose up -d
+sudo docker compose ps
+```
+
+The database and uploaded files use named Docker volumes, so `docker compose down` preserves them. Avoid `docker compose down -v` unless you intend to delete that data.
+
+For restart evidence, reboot the VM and verify the containers after reconnecting over SSH:
+
+```bash
+sudo reboot
+# SSH back into the VM, then:
+cd <application-project-directory>
+sudo docker compose ps
+```
+
+Wait until both services report healthy. After capturing the required screenshots, deallocate the VM in Azure Portal to avoid leaving the public application running.
+
 Untuk deploy ke production:
 
 ```bash

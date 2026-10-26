@@ -31,3 +31,10 @@ cookies.txt
 create.html
 headers_create.txt
 login.html
+
+# Python and Selenium artifacts
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+selenium-tests/
